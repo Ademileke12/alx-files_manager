@@ -1,13 +1,11 @@
-// utils/redis.js
-
-import redis from 'redis';
+const redis = require('redis');
 
 class RedisClient {
   constructor() {
     this.client = redis.createClient();
 
     this.client.on('error', (error) => {
-      console.error('Redis Client Error:', error);
+      console.error('Redis error:', error);
     });
   }
 
@@ -29,11 +27,11 @@ class RedisClient {
 
   async set(key, value, duration) {
     return new Promise((resolve, reject) => {
-      this.client.set(key, value, 'EX', duration, (error, reply) => {
+      this.client.set(key, value, 'EX', duration, (error, response) => {
         if (error) {
           reject(error);
         } else {
-          resolve(reply);
+          resolve(response);
         }
       });
     });
@@ -41,11 +39,11 @@ class RedisClient {
 
   async del(key) {
     return new Promise((resolve, reject) => {
-      this.client.del(key, (error, reply) => {
+      this.client.del(key, (error, response) => {
         if (error) {
           reject(error);
         } else {
-          resolve(reply);
+          resolve(response);
         }
       });
     });
@@ -54,4 +52,5 @@ class RedisClient {
 
 const redisClient = new RedisClient();
 
-export default redisClient;
+module.exports = redisClient;
+
