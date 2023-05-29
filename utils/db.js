@@ -1,6 +1,5 @@
-// utils/db.js
-
 import { MongoClient } from 'mongodb';
+import redisClient from './redis';
 
 class DBClient {
   constructor() {
@@ -41,7 +40,19 @@ class DBClient {
   async nbFiles() {
     return this.connection.collection('files').countDocuments();
   }
+
+  async getUserByToken(token) {
+    const userId = await redisClient.get(`auth_${token}`);
+    if (!userId) return null;
+
+    const user = await this.connection
+      .collection('users')
+      .findOne({ _id: userId });
+
+    return user;
+  }
 }
 
 const dbClient = new DBClient();
 export default dbClient;
+

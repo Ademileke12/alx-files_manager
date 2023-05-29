@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
 import dbClient from '../utils/db';
 
@@ -39,6 +38,20 @@ class UsersController {
     return res
       .status(201)
       .json({ id: result.insertedId.toString(), email });
+  }
+
+  static async getMe(req, res) {
+    const token = req.header('X-Token') || '';
+
+    const user = await dbClient.getUserByToken(token);
+
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { email, _id } = user;
+
+    return res.status(200).json({ email, id: _id });
   }
 }
 
