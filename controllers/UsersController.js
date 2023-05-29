@@ -1,7 +1,6 @@
-// controllers/UsersController.js
-
 import { ObjectId } from 'mongodb';
 import dbClient from '../utils/db';
+import crypto from 'crypto';
 
 class UsersController {
   static async postNew(req, res) {
@@ -23,7 +22,10 @@ class UsersController {
       return res.status(400).json({ error: 'Already exist' });
     }
 
-    const hashedPassword = sha1(password);
+    const hashedPassword = crypto
+      .createHash('sha1')
+      .update(password)
+      .digest('hex');
 
     const newUser = {
       email,
@@ -41,4 +43,3 @@ class UsersController {
 }
 
 export default UsersController;
-
