@@ -1,19 +1,22 @@
-import fs from 'fs';
-import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import dbClient from '../utils/db';
+import fs from 'fs';
+import path from 'path';
+
+const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 
 class FilesController {
   static async postUpload(req, res) {
-    const token = req.header('X-Token') || '';
-    const user = await dbClient.getUserByToken(token);
+    const { name, type, parentId = 0, isPublic = false, data } = req.body;
+    const userId = req.user.id;
 
+    // Retrieve the user based on the token
+    const user = await dbClient.getUserById(userId);
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { name, type, parentId = 0, isPublic = false, data } = req.body;
-
+    // Check if required fields are missing
     if (!name) {
       return res.status(400).json({ error: 'Missing name' });
     }
@@ -26,9 +29,9 @@ class FilesController {
       return res.status(400).json({ error: 'Missing data' });
     }
 
+    // If parentId is set, validate it
     if (parentId !== 0) {
       const parentFile = await dbClient.getFile(parentId);
-
       if (!parentFile) {
         return res.status(400).json({ error: 'Parent not found' });
       }
@@ -38,26 +41,34 @@ class FilesController {
       }
     }
 
+    // Create the new file document in the DB
+    const fileId = uuidv4();
     const file = {
-      userId: user._id.toString(),
+      id: fileId,
+      userId,
       name,
       type,
       isPublic,
       parentId,
+      localPath: null,
     };
+    await dbClient.createFile(file);
 
+    // If type is folder, return the new file
     if (type === 'folder') {
-      const result = await dbClient.createFile(file);
-      return res.status(201).json(result);
-    } else {
-      const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
-      const filePath = path.join(folderPath, `${uuidv4()}`);
-
-      fs.writeFileSync(filePath, data, 'base64');
-
-      const result = await dbClient.createFile({ ...file, localPath: filePath });
-      return res.status(201).json(result);
+      return res.status(201).json(file);
     }
+
+    // Store the file locally
+    const fileData = Buffer.from(data, 'base64');
+    const filePath = path.join(FOLDER_PATH, fileId);
+    fs.writeFileSync(filePath, fileData);
+
+    // Update the localPath in the file document
+    file.localPath = filePath;
+    await dbClient.updateFile(fileId, { localPath: filePath });
+
+    return res.status(201).json(file);
   }
 }
 

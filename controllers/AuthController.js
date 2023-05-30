@@ -13,8 +13,8 @@ class AuthController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 	  
-	  const user = await dbClient.getUser({ email, password });
-	  //const user = await dbClient.getUserByToken(token);
+	  //const user = await dbClient.getUser({ email, password });
+	  const user = await dbClient.getUserByToken(password);
 
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' });
