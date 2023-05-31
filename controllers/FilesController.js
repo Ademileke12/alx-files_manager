@@ -3,7 +3,7 @@ const fs = require('fs');
 const dbClient = require('../utils/db');
 
 class FilesController {
-  static async getShow(req, res) {
+  static async putPublish(req, res) {
     const token = req.header('X-Token');
     const fileId = req.params.id;
 
@@ -26,17 +26,20 @@ class FilesController {
         return res.status(404).json({ error: 'Not found' });
       }
 
-      return res.status(200).json(file);
+      await collection.updateOne({ _id: file._id }, { $set: { isPublic: true } });
+
+      const updatedFile = await collection.findOne({ _id: file._id });
+
+      return res.status(200).json(updatedFile);
     } catch (error) {
       console.error('Error:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }
 
-  static async getIndex(req, res) {
+  static async putUnpublish(req, res) {
     const token = req.header('X-Token');
-    const parentId = req.query.parentId || 0;
-    const page = req.query.page || 0;
+    const fileId = req.params.id;
 
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -51,21 +54,18 @@ class FilesController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const pageSize = 20;
-      const skip = page * pageSize;
+      const file = await collection.findOne({ _id: fileId, userId: user._id });
 
-      const files = await collection
-        .find({ parentId, userId: user._id })
-        .skip(skip)
-        .limit(pageSize)
-        .toArray();
+      if (!file) {
+        return res.status(404).json({ error: 'Not found' });
+      }
 
-      return res.status(200).json(files);
+      await collection.updateOne({ _id: file._id }, { $set: { isPublic: false } });
+
+      const updatedFile = await collection.findOne({ _id: file._id });
+
+      return res.status(200).json(updatedFile);
     } catch (error) {
       console.error('Error:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-  }
-}
 
 module.exports = FilesController;
