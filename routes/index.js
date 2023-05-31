@@ -26,4 +26,10 @@ router.get('/users/me', UsersController.getMe);
 // POST /files
 router.post('/files', FilesController.postUpload);
 
+// GET /files/:id
+router.get('/files/:id', FilesController.getShow);
+
+// GET /files
+router.get('/files', FilesController.getIndex);
+
 module.exports = router;
